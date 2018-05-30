@@ -18,8 +18,8 @@ def search_id():
     print user_id[0]
 
 def main():
-    search_id()
-    exit()
+    # search_id()
+    # exit()
     cmd = 'scrapy crawl jisilu'
     cmdline.execute(cmd.split())
 

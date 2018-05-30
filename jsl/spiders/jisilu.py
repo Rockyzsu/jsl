@@ -20,7 +20,7 @@ class JisiluSpider(scrapy.Spider):
                         'Pragma': ' no-cache', 'Cache-Control': ' no-cache',
                         'Referer': ' https://www.jisilu.cn/people/dbwolf'
                         }
-        self.uid = '8132'  # 这个id需要在源码页面里面去找
+        self.uid = '83220'  # 这个id需要在源码页面里面去找
     def start_requests(self):
         url = 'https://www.jisilu.cn/people/ajax/user_actions/uid-{}__actions-101__page-{}'
         for num in range(0, 100):
