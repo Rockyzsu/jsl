@@ -16,3 +16,4 @@ class JslItem(scrapy.Item):
     url = scrapy.Field()
     createTime = scrapy.Field()
     resp = scrapy.Field()
+    resp_no = scrapy.Field()
