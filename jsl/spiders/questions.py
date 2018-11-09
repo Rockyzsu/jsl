@@ -6,9 +6,9 @@ from jsl.items import JslItem
 from jsl import config
 import logging
 
-
+# 遍历所有questions id 看从哪里开始
 class AllcontentSpider(scrapy.Spider):
-    name = 'allcontent'
+    name = 'questions'
 
     headers = {
         'Host': 'www.jisilu.cn', 'Connection': 'keep-alive', 'Pragma': 'no-cache',
@@ -48,28 +48,23 @@ class AllcontentSpider(scrapy.Spider):
             headers=self.headers,
             formdata=data,
             callback=self.parse,
-            dont_filter=True
         )
 
     def parse(self, response):
-        total_page = 3838
+        total_page = 294792
 
-        for i in range(1, total_page + 1):
-            focus_url = 'https://www.jisilu.cn/home/explore/sort_type-new__category-__day-0__is_recommend-__page-{}'.format(
-                i)
-            yield Request(url=focus_url, headers=self.headers, callback=self.parse_page, dont_filter=True)
-
-    def parse_page(self, response):
-        nodes = response.xpath('//div[@class="aw-question-list"]/div')
-        for node in nodes:
-            each_url = node.xpath('.//h4/a/@href').extract_first()
-            yield Request(url=each_url, headers=self.headers, callback=self.parse_item, dont_filter=True)
+        for i in range(1, total_page + 5000):
+            focus_url = 'https://www.jisilu.cn/question/{}'.format(i)
+            yield Request(url=focus_url, headers=self.headers, callback=self.parse_item)
 
     def parse_item(self, response):
         item = JslItem()
         title = response.xpath('//div[@class="aw-mod-head"]/h1/text()').extract_first()
         s = response.xpath('//div[@class="aw-question-detail-txt markitup-box"]').xpath('string(.)').extract_first()
-        ret = re.findall('(.*?)\.donate_user_avatar', s, re.S)
+        if s:
+            ret = re.findall('(.*?)\.donate_user_avatar', s, re.S)
+        else:
+            ret=None
 
         try:
             content = ret[0].strip()
@@ -88,8 +83,10 @@ class AllcontentSpider(scrapy.Spider):
         except Exception as e:
             print(e)
             item['creator'] = None
-
-        item['title'] = title.strip()
+        try:
+            item['title'] = title.strip()
+        except Exception as e:
+            return
         item['content'] = content
         try:
             item['resp_no'] = int(resp_no)
@@ -108,9 +105,7 @@ class AllcontentSpider(scrapy.Spider):
                 './/div[@class="pull-left aw-dynamic-topic-content"]//div[@class="markitup-box"]/text()').extract_first()
             # print rep_content
             agree = reply.xpath('.//em[@class="aw-border-radius-5 aw-vote-count pull-left"]/text()').extract_first()
-            if not agree:
-                agree=0
-            resp.append({replay_user.strip() + '_{}'.format(index): [agree, rep_content.strip()]})
+            resp.append({replay_user.strip() + '_{}'.format(index): [int(agree), rep_content.strip()]})
 
         item['resp'] = resp
         yield item

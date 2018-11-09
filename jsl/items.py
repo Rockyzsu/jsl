@@ -12,6 +12,7 @@ class JslItem(scrapy.Item):
     # define the fields for your item here like:
     # name = scrapy.Field()
     title = scrapy.Field()
+    creator = scrapy.Field()
     content = scrapy.Field()
     url = scrapy.Field()
     createTime = scrapy.Field()

@@ -20,7 +20,7 @@ def search_id():
 def main():
     # search_id()
     # exit()
-    cmd = 'scrapy crawl allcontent'
+    cmd = 'scrapy crawl questions'
     cmdline.execute(cmd.split())
 
 
