@@ -18,3 +18,5 @@ class JslItem(scrapy.Item):
     createTime = scrapy.Field()
     resp = scrapy.Field()
     resp_no = scrapy.Field()
+    crawlTime = scrapy.Field()
+    last_resp_date = scrapy.Field()

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import datetime
 import re
 import scrapy
 from scrapy import Request, FormRequest
@@ -6,6 +7,8 @@ from jsl.items import JslItem
 from jsl import config
 import logging
 
+
+PAGE = 3927
 
 class AllcontentSpider(scrapy.Spider):
     name = 'allcontent'
@@ -23,7 +26,7 @@ class AllcontentSpider(scrapy.Spider):
 
     def start_requests(self):
         login_url = 'https://www.jisilu.cn/login/'
-        headers = {
+        headersx = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
             'Accept-Encoding': 'gzip,deflate,br', 'Accept-Language': 'zh,en;q=0.9,en-US;q=0.8',
             'Cache-Control': 'no-cache', 'Connection': 'keep-alive',
@@ -31,7 +34,7 @@ class AllcontentSpider(scrapy.Spider):
             'Upgrade-Insecure-Requests': '1',
             'User-Agent': 'Mozilla/5.0(WindowsNT6.1;WOW64)AppleWebKit/537.36(KHTML,likeGecko)Chrome/67.0.3396.99Safari/537.36'}
 
-        yield Request(url=login_url, headers=headers, callback=self.login, dont_filter=True)
+        yield Request(url=login_url, headers=headersx, callback=self.login, dont_filter=True)
 
     def login(self, response):
         url = 'https://www.jisilu.cn/account/ajax/login_process/'
@@ -52,7 +55,7 @@ class AllcontentSpider(scrapy.Spider):
         )
 
     def parse(self, response):
-        total_page = 3838
+        total_page = PAGE
 
         for i in range(1, total_page + 1):
             focus_url = 'https://www.jisilu.cn/home/explore/sort_type-new__category-__day-0__is_recommend-__page-{}'.format(
@@ -61,9 +64,19 @@ class AllcontentSpider(scrapy.Spider):
 
     def parse_page(self, response):
         nodes = response.xpath('//div[@class="aw-question-list"]/div')
+
         for node in nodes:
             each_url = node.xpath('.//h4/a/@href').extract_first()
-            yield Request(url=each_url, headers=self.headers, callback=self.parse_item, dont_filter=True)
+            try:
+                last_resp_date = node.xpath('.//div[@class="aw-questoin-content"]/span/text()').extract()[-1].strip()
+                # '回复  • 2018-12-10 09:49 • 46335 次浏览'
+                last_resp_date = re.search('• (.*?) •',last_resp_date).group(1)
+            except:
+
+                last_resp_date=None
+
+            yield Request(url=each_url, headers=self.headers, callback=self.parse_item, dont_filter=True,
+                          meta={'last_resp_date':last_resp_date})
 
     def parse_item(self, response):
         item = JslItem()
@@ -96,21 +109,24 @@ class AllcontentSpider(scrapy.Spider):
         except Exception as e:
             logging.warning(e)
             logging.warning('没有回复')
-            item['resp_no'] = None
+            item['resp_no'] = 0
 
         item['createTime'] = createTime
+        item['crawlTime'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         item['url'] = url.strip()
         resp = []
         for index, reply in enumerate(
                 response.xpath('//div[@class="aw-mod-body aw-dynamic-topic"]/div[@class="aw-item"]')):
             replay_user = reply.xpath('.//div[@class="pull-left aw-dynamic-topic-content"]//p/a/text()').extract_first()
             rep_content = reply.xpath(
-                './/div[@class="pull-left aw-dynamic-topic-content"]//div[@class="markitup-box"]/text()').extract_first()
-            # print rep_content
+                './/div[@class="pull-left aw-dynamic-topic-content"]//div[@class="markitup-box"]')[0].xpath('string(.)').extract_first()
+            # rep_content = '\n'.join(rep_content)
+
             agree = reply.xpath('.//em[@class="aw-border-radius-5 aw-vote-count pull-left"]/text()').extract_first()
             if not agree:
                 agree=0
             resp.append({replay_user.strip() + '_{}'.format(index): [agree, rep_content.strip()]})
 
         item['resp'] = resp
+        item['last_resp_date']=response.meta['last_resp_date']
         yield item

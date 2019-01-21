@@ -11,6 +11,8 @@ class JisiluSpider(scrapy.Spider):
     # start_urls = ['http://jisilu.cn/']
 
     def __init__(self):
+        super(JisiluSpider,self).__init__()
+
         self.headers = {
                         'Accept-Language': ' zh-CN,zh;q=0.9', 'Accept-Encoding': ' gzip, deflate, br',
                         'X-Requested-With': ' XMLHttpRequest', 'Host': ' www.jisilu.cn', 'Accept': ' */*',
