@@ -6,9 +6,7 @@ from jsl.items import JslItem
 
 class JisiluSpider(scrapy.Spider):
     name = 'jisilu'
-    allowed_domains = ['jisilu.cn']
 
-    # start_urls = ['http://jisilu.cn/']
 
     def __init__(self):
         super(JisiluSpider,self).__init__()

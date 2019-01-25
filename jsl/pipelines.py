@@ -14,8 +14,9 @@ class JslPipeline(object):
 
     def process_item(self, item, spider):
         try:
-            self.collection.insert(OrderedDict(item))
+            self.collection.update({'url':item['url']},OrderedDict(item),True,True)
         except Exception as e:
             print(e)
+
 
         return item

@@ -7,8 +7,7 @@ from jsl.items import JslItem
 from jsl import config
 import logging
 
-
-PAGE = 3927
+DAYS = 8
 
 class AllcontentSpider(scrapy.Spider):
     name = 'allcontent'
@@ -24,7 +23,12 @@ class AllcontentSpider(scrapy.Spider):
         'Accept-Language': 'zh,en;q=0.9,en-US;q=0.8'
     }
 
+    start_page = 1
+    last_week = datetime.datetime.now() + datetime.timedelta(days=-1*DAYS)
+    URL = 'https://www.jisilu.cn/home/explore/sort_type-add_time__category-__day-0__is_recommend-__page-{}'
+
     def start_requests(self):
+
         login_url = 'https://www.jisilu.cn/login/'
         headersx = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
@@ -55,28 +59,36 @@ class AllcontentSpider(scrapy.Spider):
         )
 
     def parse(self, response):
-        total_page = PAGE
-
-        for i in range(1, total_page + 1):
-            focus_url = 'https://www.jisilu.cn/home/explore/sort_type-new__category-__day-0__is_recommend-__page-{}'.format(
-                i)
-            yield Request(url=focus_url, headers=self.headers, callback=self.parse_page, dont_filter=True)
+        focus_url = self.URL.format(
+            self.start_page)
+        yield Request(url=focus_url, headers=self.headers, callback=self.parse_page, dont_filter=True,
+                      meta={'page': self.start_page})
 
     def parse_page(self, response):
-        nodes = response.xpath('//div[@class="aw-question-list"]/div')
+        current_page = response.meta['page']
 
+        nodes = response.xpath('//div[@class="aw-question-list"]/div')
+        last_resp_date = None
         for node in nodes:
             each_url = node.xpath('.//h4/a/@href').extract_first()
             try:
                 last_resp_date = node.xpath('.//div[@class="aw-questoin-content"]/span/text()').extract()[-1].strip()
                 # '回复  • 2018-12-10 09:49 • 46335 次浏览'
-                last_resp_date = re.search('• (.*?) •',last_resp_date).group(1)
+                last_resp_date = re.search('• (.*?) •', last_resp_date).group(1)
             except:
+                last_resp_date = None
+                print('failed to find date')
 
-                last_resp_date=None
+            else:
 
-            yield Request(url=each_url, headers=self.headers, callback=self.parse_item, dont_filter=True,
-                          meta={'last_resp_date':last_resp_date})
+                yield Request(url=each_url, headers=self.headers, callback=self.parse_item, dont_filter=True,
+                              meta={'last_resp_date': last_resp_date})
+
+        last_resp_date_dt = datetime.datetime.strptime(last_resp_date,'%Y-%m-%d %H:%M')
+        if self.last_week and self.last_week < last_resp_date_dt:
+            current_page += 1
+            yield Request(url=self.URL.format(current_page), headers=self.headers, callback=self.parse_page,
+                          dont_filter=True, meta={'page': current_page})
 
     def parse_item(self, response):
         item = JslItem()
@@ -119,14 +131,15 @@ class AllcontentSpider(scrapy.Spider):
                 response.xpath('//div[@class="aw-mod-body aw-dynamic-topic"]/div[@class="aw-item"]')):
             replay_user = reply.xpath('.//div[@class="pull-left aw-dynamic-topic-content"]//p/a/text()').extract_first()
             rep_content = reply.xpath(
-                './/div[@class="pull-left aw-dynamic-topic-content"]//div[@class="markitup-box"]')[0].xpath('string(.)').extract_first()
+                './/div[@class="pull-left aw-dynamic-topic-content"]//div[@class="markitup-box"]')[0].xpath(
+                'string(.)').extract_first()
             # rep_content = '\n'.join(rep_content)
 
             agree = reply.xpath('.//em[@class="aw-border-radius-5 aw-vote-count pull-left"]/text()').extract_first()
             if not agree:
-                agree=0
+                agree = 0
             resp.append({replay_user.strip() + '_{}'.format(index): [agree, rep_content.strip()]})
 
         item['resp'] = resp
-        item['last_resp_date']=response.meta['last_resp_date']
+        item['last_resp_date'] = response.meta['last_resp_date']
         yield item
