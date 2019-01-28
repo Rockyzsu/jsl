@@ -7,7 +7,7 @@ from jsl.items import JslItem
 from jsl import config
 import logging
 
-DAYS = 8
+DAYS = 365*5
 
 class AllcontentSpider(scrapy.Spider):
     name = 'allcontent'
