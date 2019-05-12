@@ -20,3 +20,15 @@ class JslItem(scrapy.Item):
     resp_no = scrapy.Field()
     crawlTime = scrapy.Field()
     last_resp_date = scrapy.Field()
+
+class Relationship(scrapy.Item):
+    user_id =scrapy.Field()
+    flag=scrapy.Field()
+    user=scrapy.Field()
+    prestige=scrapy.Field() # 威望
+    approve=scrapy.Field() # 赞同
+    follows_count=scrapy.Field()
+    fans_count=scrapy.Field()
+    follows_list=scrapy.Field()
+    fans_list=scrapy.Field()
+    crawltime=scrapy.Field()
