@@ -17,6 +17,7 @@ def get_response_callback(content):
     # print(content)
 
     text = str(content,encoding='utf-8')
+    # print(text)
     response = Selector(text=text)
     nodes = response.xpath('//div[@class="aw-mod-body aw-dynamic-topic"]/div')
     for node in nodes:
@@ -45,11 +46,12 @@ urls='https://www.jisilu.cn/question/id-321075__sort_key-__sort-DESC__uid-__page
 d_list=[]
 page = 4
 for i in range(1,page+1):
-    print(urls.format(i))
+    # print(urls.format(i))
     t = task(urls.format(i))
+    # t = task(urls)
     d_list.append(t)
 d = defer.DeferredList(d_list)
 # d.addBoth(lambda _:reactor.callLater(0,get_result()))
-# d.addBoth(lambda _:reactor.stop())
+d.addBoth(lambda _:reactor.stop())
 reactor.run()
 
