@@ -7,7 +7,7 @@ from jsl.items import JslItem
 from jsl import config
 import logging
 
-DAYS = 9
+DAYS = 100
 
 class AllcontentSpider(scrapy.Spider):
     name = 'allcontent'
@@ -24,7 +24,9 @@ class AllcontentSpider(scrapy.Spider):
     }
 
     start_page = 1
+
     last_week = datetime.datetime.now() + datetime.timedelta(days=-1*DAYS)
+
     URL = 'https://www.jisilu.cn/home/explore/sort_type-add_time__category-__day-0__is_recommend-__page-{}'
 
     def start_requests(self):
