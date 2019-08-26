@@ -8,14 +8,19 @@ import pymongo
 from collections import OrderedDict
 from jsl.items import Relationship,JslItem
 from jsl import config
+
 class JslPipeline(object):
     def __init__(self):
+
+
         self.db = pymongo.MongoClient(host=config.mongo,port=config.port)
+
         # self.user = u'neo牛3' # 修改为指定的用户名 如 毛之川 ，然后找到用户的id，在用户也的源码哪里可以找到 比如持有封基是8132
         self.collection = self.db['db_parker']['jsl']
         self.relations = self.db['db_parker']['jsl_relationship']
 
     def process_item(self, item, spider):
+
         if isinstance(item,JslItem):
             try:
                 self.collection.update({'url':item['url']},OrderedDict(item),True,True)

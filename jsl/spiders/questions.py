@@ -61,6 +61,7 @@ class AllcontentSpider(scrapy.Spider):
         item = JslItem()
         title = response.xpath('//div[@class="aw-mod-head"]/h1/text()').extract_first()
         s = response.xpath('//div[@class="aw-question-detail-txt markitup-box"]').xpath('string(.)').extract_first()
+
         if s:
             ret = re.findall('(.*?)\.donate_user_avatar', s, re.S)
         else:
@@ -98,6 +99,7 @@ class AllcontentSpider(scrapy.Spider):
         item['createTime'] = createTime
         item['url'] = url.strip()
         resp = []
+
         for index, reply in enumerate(
                 response.xpath('//div[@class="aw-mod-body aw-dynamic-topic"]/div[@class="aw-item"]')):
             replay_user = reply.xpath('.//div[@class="pull-left aw-dynamic-topic-content"]//p/a/text()').extract_first()
