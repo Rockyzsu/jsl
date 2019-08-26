@@ -52,7 +52,7 @@ class AllcontentSpider(scrapy.Spider):
         )
 
     def parse(self, response):
-        total_page = 3838
+        total_page = 5
 
         for i in range(1, total_page + 1):
             focus_url = 'https://www.jisilu.cn/home/explore/sort_type-new__category-__day-0__is_recommend-__page-{}'.format(
@@ -100,17 +100,4 @@ class AllcontentSpider(scrapy.Spider):
 
         item['createTime'] = createTime
         item['url'] = url.strip()
-        resp = []
-        for index, reply in enumerate(
-                response.xpath('//div[@class="aw-mod-body aw-dynamic-topic"]/div[@class="aw-item"]')):
-            replay_user = reply.xpath('.//div[@class="pull-left aw-dynamic-topic-content"]//p/a/text()').extract_first()
-            rep_content = reply.xpath(
-                './/div[@class="pull-left aw-dynamic-topic-content"]//div[@class="markitup-box"]/text()').extract_first()
-            # print rep_content
-            agree = reply.xpath('.//em[@class="aw-border-radius-5 aw-vote-count pull-left"]/text()').extract_first()
-            if not agree:
-                agree=0
-            resp.append({replay_user.strip() + '_{}'.format(index): [agree, rep_content.strip()]})
-
-        item['resp'] = resp
         yield item

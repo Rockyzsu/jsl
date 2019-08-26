@@ -23,7 +23,7 @@ ROBOTSTXT_OBEY = False
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
 #CONCURRENT_REQUESTS = 32
-LOG_LEVEL='INFO'
+# LOG_LEVEL='INFO'
 # Configure a delay for requests for the same website (default: 0)
 # See http://scrapy.readthedocs.org/en/latest/topics/settings.html#download-delay
 # See also autothrottle settings and docs
@@ -65,7 +65,9 @@ COOKIES_ENABLED = True
 # Configure item pipelines
 # See http://scrapy.readthedocs.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-   'jsl.pipelines.JslPipeline': 300,
+   # 'jsl.pipelines.ElasticPipeline': 300,
+    'jsl.pipelines.JslPipeline':300,
+'scrapyelasticsearch.scrapyelasticsearch.ElasticSearchPipeline':200,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
@@ -88,3 +90,7 @@ ITEM_PIPELINES = {
 #HTTPCACHE_DIR = 'httpcache'
 #HTTPCACHE_IGNORE_HTTP_CODES = []
 #HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
+
+ELASTICSEARCH_SERVERS = ['10.18.6.102:9200']
+ELASTICSEARCH_INDEX='jsl_elastic'
+ELASTICSEARCH_TYPE='ticket'
