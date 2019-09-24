@@ -116,6 +116,7 @@ class RelationshipSpider(Spider):
         item['flag'] = 'fan'
 
         follow_list = []
+
         for node in response.xpath('//li[@class="span5"]'):
             d = {}
             fan_name = node.xpath('.//div[@class="aw-item"]/p[1]/a/text()').extract_first()
@@ -125,6 +126,7 @@ class RelationshipSpider(Spider):
             d['fan_name'] = fan_name
             d['prestige'] = prestige
             d['approve'] = approve
+
             yield Request(
                 url=self.people_url.format(name=fan_name),
                 headers=self.headers,
