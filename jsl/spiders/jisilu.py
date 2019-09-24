@@ -6,17 +6,16 @@ from jsl.items import JslItem
 
 class JisiluSpider(scrapy.Spider):
     name = 'jisilu'
-    allowed_domains = ['jisilu.cn']
 
-    # start_urls = ['http://jisilu.cn/']
 
     def __init__(self):
+        super(JisiluSpider,self).__init__()
+
         self.headers = {
                         'Accept-Language': ' zh-CN,zh;q=0.9', 'Accept-Encoding': ' gzip, deflate, br',
                         'X-Requested-With': ' XMLHttpRequest', 'Host': ' www.jisilu.cn', 'Accept': ' */*',
                         'User-Agent': ' Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.162 Safari/537.36',
                         'Connection': ' keep-alive',
-                        # 'Cookie': ' kbzw_r_uname=30%E5%A4%A9%E6%96%B0%E4%BA%8B%E6%83%85; kbz_newcookie=1; kbzw__Session=ka39tms3e8gutu6o00uvdb9ak4; Hm_lvt_164fe01b1433a19b507595a43bf58262=1525919695,1526092553,1526116515,1527398327; kbzw__user_login=7Obd08_P1ebax9aXqpJbBSBdCShFKuxa_PqKtJnnw-nU7ubl3L_NjKfe25ut0duWqJfd2aqqmNKZq62porCh3MbYk9jd1qjGkZyh7t7N18milK2TqLCpmZydtrXX0pTG2_HL4s3YpqimkZCJy-Ljzejj6oLEtZetoamckLjd56udtIzvmKqKl7jj6M3VuNnbwNLtm6yVrY-qrZOgrLi1wcWhieXV4seWqNza3ueKkKTc6-TW3putl6SRpaqmqpaekqqrlbza0tjU35CsqqqmlKY.; Hm_lpvt_164fe01b1433a19b507595a43bf58262=1527402958',
                         'Pragma': ' no-cache', 'Cache-Control': ' no-cache',
                         'Referer': ' https://www.jisilu.cn/people/dbwolf'
                         }
