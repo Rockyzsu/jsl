@@ -4,6 +4,7 @@
 # @File : guess_first_day_price.py
 
 # 猜测第一天上市价格
+# 使用twsisted失败
 
 from twisted.web.client import getPage
 from twisted.internet import reactor
