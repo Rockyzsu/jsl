@@ -8,11 +8,14 @@ import requests
 import time
 from selenium import webdriver
 from scrapy.selector import Selector
-
 import config
 
+import pymongo
+
+
+
 headers = {'User-Agent': 'FireFox Molliza Chrome'}
-path = r'C:\OneDrive\Python\selenium\chromedriver.exe'
+path = r'D:\OneDrive\Python\selenium\chromedriver.exe'
 option = webdriver.ChromeOptions()
 option.add_argument(
     '--user-agent=Mozilla/5.0 (Windows NT 9.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36')
@@ -34,14 +37,15 @@ def login():
     time.sleep(5)
 
 
-def predict(url):
+def predict(url,name):
+
     driver.get(url)
     current_page = 1
     count = 0
     sum = 0
     while 1:
+
         try:
-            # print(f'current page {current_page}')
 
             price = parse(driver.page_source)
             if price:
@@ -59,6 +63,9 @@ def predict(url):
 
     avg = round(sum / count,3)
     print(f'avg price {avg}')
+    client = pymongo.MongoClient(config.mongodb_host, config.mongodb_port)
+    doc = client['db_stock']['kzz_price_predict']
+    doc.insert_one({'name':name,'predict_price':avg})
     driver.close()
 
 
@@ -83,9 +90,9 @@ def parse(text):
 def main():
     login()
 
-    url = 'https://www.jisilu.cn/question/330416'
-    predict(url)
-
+    url = 'https://www.jisilu.cn/question/330663'
+    name='合兴转债'
+    predict(url,name)
 
 if __name__ == '__main__':
     main()
