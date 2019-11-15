@@ -7,7 +7,6 @@ from jsl.items import JslItem
 class JisiluSpider(scrapy.Spider):
     name = 'jisilu'
 
-
     def __init__(self):
         super(JisiluSpider,self).__init__()
 

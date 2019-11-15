@@ -11,3 +11,5 @@
 self.user = u'毛之川'  # 修改为指定的用户名 如 毛之川 
 
 #### 新增爬取全站数据
+
+#### guess_first_day_price_syncup.py 估算可转债上市价格

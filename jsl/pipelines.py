@@ -4,32 +4,36 @@
 #
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: http://doc.scrapy.org/en/latest/topics/item-pipeline.html
+import datetime
+
 import pymongo
 from collections import OrderedDict
-<<<<<<< HEAD
+
 from scrapy.exporters import JsonLinesItemExporter
-=======
 from jsl.items import Relationship,JslItem
 from jsl import config
->>>>>>> origin/master
+
 
 class JslPipeline(object):
     def __init__(self):
 
 
-        self.db = pymongo.MongoClient(host=config.mongo,port=config.port)
+        self.db = pymongo.MongoClient(host=config.mongodb_host,port=config.mongodb_port)
 
         # self.user = u'neo牛3' # 修改为指定的用户名 如 毛之川 ，然后找到用户的id，在用户也的源码哪里可以找到 比如持有封基是8132
-<<<<<<< HEAD
-        self.collection = self.db['db_parker']['jsl_20181108_allQuestion_test']
-=======
+
+        # self.collection = self.db['db_parker']['jsl_20181108_allQuestion_test']
         self.collection = self.db['db_parker']['jsl']
         self.relations = self.db['db_parker']['jsl_relationship']
->>>>>>> origin/master
+        self.collection.ensure_index('question_id', unique=True)
 
     def process_item(self, item, spider):
 
         if isinstance(item,JslItem):
+            update_time = datetime.datetime.now()
+            item = dict(item)
+            item['update_time']=update_time
+
             try:
                 self.collection.update({'url':item['url']},OrderedDict(item),True,True)
             except Exception as e:
@@ -65,10 +69,9 @@ class JslPipeline(object):
                 del d['flag']
                 self.relations.insert(d)
 
-
         return item
 
-<<<<<<< HEAD
+
 class ElasticPipeline(object):
     def __init__(self):
         self.fp=open('jsl.json','wb')
@@ -84,5 +87,4 @@ class ElasticPipeline(object):
     def close_spider(self,spider):
         self.fp.close()
         print('爬虫结束')
-=======
->>>>>>> origin/master
+

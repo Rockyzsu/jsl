@@ -22,13 +22,12 @@ NEWSPIDER_MODULE = 'jsl.spiders'
 ROBOTSTXT_OBEY = False
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
-<<<<<<< HEAD
+
 #CONCURRENT_REQUESTS = 32
 # LOG_LEVEL='INFO'
-=======
 # CONCURRENT_REQUESTS = 32
 LOG_LEVEL='INFO'
->>>>>>> origin/master
+
 # Configure a delay for requests for the same website (default: 0)
 # See http://scrapy.readthedocs.org/en/latest/topics/settings.html#download-delay
 # See also autothrottle settings and docs
@@ -72,7 +71,7 @@ COOKIES_ENABLED = True
 ITEM_PIPELINES = {
    # 'jsl.pipelines.ElasticPipeline': 300,
     'jsl.pipelines.JslPipeline':300,
-'scrapyelasticsearch.scrapyelasticsearch.ElasticSearchPipeline':200,
+# 'scrapyelasticsearch.scrapyelasticsearch.ElasticSearchPipeline':200,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)

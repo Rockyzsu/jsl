@@ -90,8 +90,8 @@ def parse(text):
 def main():
     login()
 
-    url = 'https://www.jisilu.cn/question/330663'
-    name='合兴转债'
+    url = 'https://www.jisilu.cn/question/337327'
+    name='浦发转债'
     predict(url,name)
 
 if __name__ == '__main__':

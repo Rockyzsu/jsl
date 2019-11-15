@@ -7,7 +7,8 @@ from jsl.items import JslItem
 from jsl import config
 import logging
 
-DAYS = 100
+DAYS = 10
+
 
 class AllcontentSpider(scrapy.Spider):
     name = 'allcontent'
@@ -25,9 +26,12 @@ class AllcontentSpider(scrapy.Spider):
 
     start_page = 1
 
-    last_week = datetime.datetime.now() + datetime.timedelta(days=-1*DAYS)
+    last_week = datetime.datetime.now() + datetime.timedelta(days=-1 * DAYS)
 
     URL = 'https://www.jisilu.cn/home/explore/sort_type-add_time__category-__day-0__is_recommend-__page-{}'
+
+    DETAIL_URL = 'https://www.jisilu.cn/question/{}&sort_key=agree_count&sort=DESC'
+    MULTI_PAGE_DETAIL = 'https://www.jisilu.cn/question/id-{}__sort_key-agree_count__sort-DESC__uid-__page-{}'
 
     def start_requests(self):
 
@@ -46,8 +50,8 @@ class AllcontentSpider(scrapy.Spider):
         url = 'https://www.jisilu.cn/account/ajax/login_process/'
         data = {
             'return_url': 'https://www.jisilu.cn/',
-            'user_name': config.username,
-            'password': config.password,
+            'user_name': config.jsl_user,
+            'password': config.jsl_password,
             'net_auto_login': '1',
             '_post_type': 'ajax',
         }
@@ -61,25 +65,20 @@ class AllcontentSpider(scrapy.Spider):
         )
 
     def parse(self, response):
-<<<<<<< HEAD
-        total_page = 5
 
-        for i in range(1, total_page + 1):
-            focus_url = 'https://www.jisilu.cn/home/explore/sort_type-new__category-__day-0__is_recommend-__page-{}'.format(
-                i)
-            yield Request(url=focus_url, headers=self.headers, callback=self.parse_page, dont_filter=True)
-=======
-        focus_url = self.URL.format(
-            self.start_page)
+
+        focus_url = self.URL.format(self.start_page)
+
         yield Request(url=focus_url, headers=self.headers, callback=self.parse_page, dont_filter=True,
                       meta={'page': self.start_page})
->>>>>>> origin/master
 
     def parse_page(self, response):
+
         current_page = response.meta['page']
 
         nodes = response.xpath('//div[@class="aw-question-list"]/div')
         last_resp_date = None
+
         for node in nodes:
             each_url = node.xpath('.//h4/a/@href').extract_first()
             try:
@@ -91,29 +90,43 @@ class AllcontentSpider(scrapy.Spider):
                 print('failed to find date')
 
             else:
+                # 访问详情
+                # 替换成这个 'https://www.jisilu.cn/question/320215&sort_key=agree_count&sort=DESC'
+                # '"https://www.jisilu.cn/question/336326"'
+                if re.search('www.jisilu.cn/question/\d+', each_url):
+                    question_id = re.search('www.jisilu.cn/question/(\d+)', each_url).group(1)
 
-                yield Request(url=each_url, headers=self.headers, callback=self.parse_item, dont_filter=True,
-                              meta={'last_resp_date': last_resp_date})
+                    yield Request(url=self.DETAIL_URL.format(question_id), headers=self.headers,
+                                  callback=self.check_detail, dont_filter=True,
+                                  meta={'last_resp_date': last_resp_date, 'question_id': question_id})
 
-        last_resp_date_dt = datetime.datetime.strptime(last_resp_date,'%Y-%m-%d %H:%M')
+
+        last_resp_date_dt = datetime.datetime.strptime(last_resp_date, '%Y-%m-%d %H:%M')
+
+        # 继续翻页
         if self.last_week and self.last_week < last_resp_date_dt:
             current_page += 1
             yield Request(url=self.URL.format(current_page), headers=self.headers, callback=self.parse_page,
                           dont_filter=True, meta={'page': current_page})
 
-    def parse_item(self, response):
+    def check_detail(self, response):
+        question_id = response.meta['question_id']
+        more_page = response.xpath('//div[@class="pagination pull-right"]')
+        last_resp_date = response.meta['last_resp_date']
+
         item = JslItem()
         title = response.xpath('//div[@class="aw-mod-head"]/h1/text()').extract_first()
         s = response.xpath('//div[@class="aw-question-detail-txt markitup-box"]').xpath('string(.)').extract_first()
         ret = re.findall('(.*?)\.donate_user_avatar', s, re.S)
+        item['question_id'] = question_id
 
         try:
             content = ret[0].strip()
         except:
             content = None
 
-        createTime = response.xpath('//div[@class="aw-question-detail-meta"]/span/text()').extract_first()
-
+        createTime = response.xpath('//div[@class="aw-question-detail-meta"]/div/span/text()').extract_first()
+        # 'aw-question-detail-meta'
         resp_no = response.xpath('//div[@class="aw-mod aw-question-detail-box"]//ul/h2/text()').re_first('\d+')
 
         url = response.url
@@ -137,23 +150,86 @@ class AllcontentSpider(scrapy.Spider):
         item['createTime'] = createTime
         item['crawlTime'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         item['url'] = url.strip()
-<<<<<<< HEAD
-=======
+        item['html']=response.text
+
         resp = []
-        for index, reply in enumerate(
-                response.xpath('//div[@class="aw-mod-body aw-dynamic-topic"]/div[@class="aw-item"]')):
-            replay_user = reply.xpath('.//div[@class="pull-left aw-dynamic-topic-content"]//p/a/text()').extract_first()
-            rep_content = reply.xpath(
-                './/div[@class="pull-left aw-dynamic-topic-content"]//div[@class="markitup-box"]')[0].xpath(
-                'string(.)').extract_first()
-            # rep_content = '\n'.join(rep_content)
 
-            agree = reply.xpath('.//em[@class="aw-border-radius-5 aw-vote-count pull-left"]/text()').extract_first()
-            if not agree:
-                agree = 0
-            resp.append({replay_user.strip() + '_{}'.format(index): [agree, rep_content.strip()]})
+        # 多页
+        if more_page:
+            item['resp'] = resp
 
-        item['resp'] = resp
-        item['last_resp_date'] = response.meta['last_resp_date']
->>>>>>> origin/master
-        yield item
+            yield Request(url=self.DETAIL_URL.format(response.url), headers=self.headers,
+                          callback=self.multi_page, dont_filter=True,
+                          meta={'last_resp_date': last_resp_date, '_item': item,'question_id':question_id})
+
+        else:
+            # 回复内容
+            for index, reply in enumerate(
+                    response.xpath('//div[@class="aw-mod-body aw-dynamic-topic"]/div[@class="aw-item"]')):
+                replay_user = reply.xpath(
+                    './/div[@class="pull-left aw-dynamic-topic-content"]//p/a/text()').extract_first()
+                rep_content = reply.xpath(
+                    './/div[@class="pull-left aw-dynamic-topic-content"]//div[@class="markitup-box"]')[0].xpath(
+                    'string(.)').extract_first()
+                # rep_content = '\n'.join(rep_content)
+
+                agree = reply.xpath('.//em[@class="aw-border-radius-5 aw-vote-count pull-left"]/text()').extract_first()
+                if not agree:
+                    agree = 0
+
+                resp.append({replay_user.strip() + '_{}'.format(index): {'agree':agree, 'resp_content':rep_content.strip()}})
+
+            item['resp'] = resp
+            # item['agree'] = agree
+
+            item['last_resp_date'] = response.meta['last_resp_date']
+
+            yield item
+
+    # 详情页
+    def multi_page(self, response):
+        # 获取页码
+        page = 1
+        question_id = response.meta['question_id']
+        _item = response.meta['_item']
+        last_resp_date = response.meta['last_resp_date']
+
+
+        yield Request(url=self.MULTI_PAGE_DETAIL.format(question_id, page), headers=self.headers,
+                      callback=self.multi_page_detail, dont_filter=True,
+                      meta={'last_resp_date': last_resp_date, 'question_id': question_id, 'page': page, '_item': _item})
+
+    def multi_page_detail(self, response):
+        # 是否有内容
+        current_page = response.meta['page']
+        _item = response.meta['_item']
+        question_id = response.meta['question_id']
+        last_resp_date = response.meta['last_resp_date']
+
+        resp_len = response.xpath('//div[@class="aw-mod-body aw-dynamic-topic"]/div[@class="aw-item"]/div')
+        if len(resp_len) == 0:
+            yield _item
+        # 生成 item
+        else:
+            for index, reply in enumerate(
+                    response.xpath('//div[@class="aw-mod-body aw-dynamic-topic"]/div[@class="aw-item"]')):
+                replay_user = reply.xpath(
+                    './/div[@class="pull-left aw-dynamic-topic-content"]//p/a/text()').extract_first()
+                rep_content = reply.xpath(
+                    './/div[@class="pull-left aw-dynamic-topic-content"]//div[@class="markitup-box"]')[0].xpath(
+                    'string(.)').extract_first()
+                # rep_content = '\n'.join(rep_content)
+
+                agree = reply.xpath('.//em[@class="aw-border-radius-5 aw-vote-count pull-left"]/text()').extract_first()
+                if not agree:
+                    agree = 0
+
+                _item['resp'].append({replay_user.strip() + '_{}'.format(index): {'agree':agree, 'resp_content':rep_content.strip()}})
+
+        current_page+=1
+
+        yield Request(url=self.MULTI_PAGE_DETAIL.format(question_id, current_page), headers=self.headers,
+                      callback=self.multi_page_detail, dont_filter=True,
+                      meta={'last_resp_date': last_resp_date, 'question_id': question_id, 'page': current_page, '_item': _item})
+
+
