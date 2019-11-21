@@ -4,12 +4,14 @@
 # @File : guess_first_day_price_syncup.py
 
 # 同步获取
+import sys
+
 import requests
 import time
 from selenium import webdriver
 from scrapy.selector import Selector
 import config
-
+import numpy as np
 import pymongo
 
 
@@ -41,27 +43,37 @@ def predict(url,name):
 
     driver.get(url)
     current_page = 1
-    count = 0
     sum = 0
+    price_list = []
     while 1:
 
         try:
 
             price = parse(driver.page_source)
             if price:
-                count += 1
-                sum = sum + price
+                price_list.extend(price)
 
             next_btn = driver.find_element_by_xpath('//div[@class="pagination pull-right"]//a[contains(text(),">")]')
 
         except Exception as e:
+            print(e)
             break
         else:
 
             current_page += 1
             next_btn.click()
+    # 改为去掉最大和最小的值
+    max_v=max(price_list)
+    min_v=min(price_list)
+    # print(price_list)
+    price_list.remove(max_v)
+    price_list.remove(min_v)
+    # print(price_list)
+    # price_np = np.array(price_list)
+    for i in price_list:
+        sum+=i
 
-    avg = round(sum / count,3)
+    avg = round( sum/len(price_list),3)
     print(f'avg price {avg}')
     client = pymongo.MongoClient(config.mongodb_host, config.mongodb_port)
     doc = client['db_stock']['kzz_price_predict']
@@ -72,6 +84,7 @@ def predict(url,name):
 def parse(text):
     response = Selector(text=text)
     nodes = response.xpath('//div[@class="aw-mod-body aw-dynamic-topic"]/div[@class="aw-item"]')
+    result_list = []
     for node in nodes:
         comment = node.xpath(
             './/div[@class="pull-left aw-dynamic-topic-content"]//div[@class="markitup-box"]/text()').extract_first()
@@ -79,20 +92,28 @@ def parse(text):
             comment = comment.strip()
             try:
                 comment = float(comment)
-                return comment
+
             except Exception as e:
-                return None
-
+                continue
+            else:
+                result_list.append(comment)
         else:
-            return None
+            continue
+    return result_list
 
 
-def main():
+def main(url,name):
     login()
 
-    url = 'https://www.jisilu.cn/question/337327'
-    name='浦发转债'
+    # url = 'https://www.jisilu.cn/question/337327'
+    # name='浦发转债'
     predict(url,name)
 
 if __name__ == '__main__':
-    main()
+    if len(sys.argv)!=3:
+        print('python guess_first_price_syncup url name\n')
+    else:
+        url=sys.argv[1]
+        name =sys.argv[2]
+        main(url,name)
+    # main('','')
