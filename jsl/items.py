@@ -35,3 +35,8 @@ class Relationship(scrapy.Item):
     follows_list = scrapy.Field()
     fans_list = scrapy.Field()
     crawltime = scrapy.Field()
+
+class UpdateItem(scrapy.Item):
+    question_id = scrapy.Field()
+    resp=scrapy.Field()
+    crawltime = scrapy.Field()

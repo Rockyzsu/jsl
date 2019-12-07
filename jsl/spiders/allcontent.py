@@ -7,7 +7,7 @@ from jsl.items import JslItem
 from jsl import config
 import logging
 
-DAYS = 10
+DAYS = 2
 
 
 class AllcontentSpider(scrapy.Spider):
@@ -31,7 +31,7 @@ class AllcontentSpider(scrapy.Spider):
     URL = 'https://www.jisilu.cn/home/explore/sort_type-add_time__category-__day-0__is_recommend-__page-{}'
 
     DETAIL_URL = 'https://www.jisilu.cn/question/{}&sort_key=agree_count&sort=DESC'
-    MULTI_PAGE_DETAIL = 'https://www.jisilu.cn/question/id-{}__sort_key-agree_count__sort-DESC__uid-__page-{}'
+    MULTI_PAGE_DETAIL = 'https://www.jisilu.cn/question/id-{}__sort_key-__sort-DESC__uid-__page-{}'
 
     def start_requests(self):
 
@@ -66,7 +66,6 @@ class AllcontentSpider(scrapy.Spider):
 
     def parse(self, response):
 
-
         focus_url = self.URL.format(self.start_page)
 
         yield Request(url=focus_url, headers=self.headers, callback=self.parse_page, dont_filter=True,
@@ -100,11 +99,10 @@ class AllcontentSpider(scrapy.Spider):
                                   callback=self.check_detail, dont_filter=True,
                                   meta={'last_resp_date': last_resp_date, 'question_id': question_id})
 
-
         last_resp_date_dt = datetime.datetime.strptime(last_resp_date, '%Y-%m-%d %H:%M')
 
         # 继续翻页
-        if self.last_week and self.last_week < last_resp_date_dt:
+        if self.last_week < last_resp_date_dt:
             current_page += 1
             yield Request(url=self.URL.format(current_page), headers=self.headers, callback=self.parse_page,
                           dont_filter=True, meta={'page': current_page})
@@ -143,26 +141,31 @@ class AllcontentSpider(scrapy.Spider):
         try:
             item['resp_no'] = int(resp_no)
         except Exception as e:
-            logging.warning(e)
+            # logging.warning(e)
             logging.warning('没有回复')
             item['resp_no'] = 0
 
-        item['createTime'] = createTime
+        item['createTime'] = createTime.replace('发表时间 ', '')
         item['crawlTime'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         item['url'] = url.strip()
-        item['html']=response.text
-
-        resp = []
+        item['html'] = response.text
+        item['last_resp_date'] = response.meta['last_resp_date']
 
         # 多页
         if more_page:
-            item['resp'] = resp
 
-            yield Request(url=self.DETAIL_URL.format(response.url), headers=self.headers,
-                          callback=self.multi_page, dont_filter=True,
-                          meta={'last_resp_date': last_resp_date, '_item': item,'question_id':question_id})
+            total_resp_no = item['resp_no']
+            total_page = total_resp_no//100+1
+            item['resp']=[]
+
+            yield Request(url=self.MULTI_PAGE_DETAIL.format(question_id, 1), headers=self.headers,
+                              callback=self.multi_page_detail, dont_filter=True,
+                              meta={'question_id': question_id, 'page': 1,'total_page':total_page,
+                                    'item': item})
 
         else:
+
+            resp_=[]
             # 回复内容
             for index, reply in enumerate(
                     response.xpath('//div[@class="aw-mod-body aw-dynamic-topic"]/div[@class="aw-item"]')):
@@ -174,62 +177,57 @@ class AllcontentSpider(scrapy.Spider):
                 # rep_content = '\n'.join(rep_content)
 
                 agree = reply.xpath('.//em[@class="aw-border-radius-5 aw-vote-count pull-left"]/text()').extract_first()
-                if not agree:
+                if agree is None:
                     agree = 0
+                else:
+                    agree = int(agree)
 
-                resp.append({replay_user.strip() + '_{}'.format(index): {'agree':agree, 'resp_content':rep_content.strip()}})
+                resp_.append(
+                    {replay_user.strip(): {'agree': agree, 'resp_content': rep_content.strip()}})
 
-            item['resp'] = resp
-            # item['agree'] = agree
-
-            item['last_resp_date'] = response.meta['last_resp_date']
+            item['resp'] = resp_
 
             yield item
 
     # 详情页
-    def multi_page(self, response):
-        # 获取页码
-        page = 1
-        question_id = response.meta['question_id']
-        _item = response.meta['_item']
-        last_resp_date = response.meta['last_resp_date']
-
-
-        yield Request(url=self.MULTI_PAGE_DETAIL.format(question_id, page), headers=self.headers,
-                      callback=self.multi_page_detail, dont_filter=True,
-                      meta={'last_resp_date': last_resp_date, 'question_id': question_id, 'page': page, '_item': _item})
 
     def multi_page_detail(self, response):
-        # 是否有内容
+
         current_page = response.meta['page']
-        _item = response.meta['_item']
+        item = response.meta['item']
+        total_page = response.meta['total_page']
         question_id = response.meta['question_id']
-        last_resp_date = response.meta['last_resp_date']
 
         resp_len = response.xpath('//div[@class="aw-mod-body aw-dynamic-topic"]/div[@class="aw-item"]/div')
-        if len(resp_len) == 0:
-            yield _item
-        # 生成 item
-        else:
-            for index, reply in enumerate(
-                    response.xpath('//div[@class="aw-mod-body aw-dynamic-topic"]/div[@class="aw-item"]')):
-                replay_user = reply.xpath(
-                    './/div[@class="pull-left aw-dynamic-topic-content"]//p/a/text()').extract_first()
-                rep_content = reply.xpath(
-                    './/div[@class="pull-left aw-dynamic-topic-content"]//div[@class="markitup-box"]')[0].xpath(
-                    'string(.)').extract_first()
-                # rep_content = '\n'.join(rep_content)
+        print('本页回复数目{}'.format(len(resp_len)))
 
-                agree = reply.xpath('.//em[@class="aw-border-radius-5 aw-vote-count pull-left"]/text()').extract_first()
-                if not agree:
-                    agree = 0
+        for index, reply in enumerate(
+                response.xpath('//div[@class="aw-mod-body aw-dynamic-topic"]/div[@class="aw-item"]')):
+            replay_user = reply.xpath(
+                './/div[@class="pull-left aw-dynamic-topic-content"]//p/a/text()').extract_first()
+            rep_content = reply.xpath(
+                './/div[@class="pull-left aw-dynamic-topic-content"]//div[@class="markitup-box"]')[0].xpath(
+                'string(.)').extract_first()
+            if rep_content:
+                rep_content = rep_content.strip()
+            # rep_content = '\n'.join(rep_content)
 
-                _item['resp'].append({replay_user.strip() + '_{}'.format(index): {'agree':agree, 'resp_content':rep_content.strip()}})
+            agree = reply.xpath('.//em[@class="aw-border-radius-5 aw-vote-count pull-left"]/text()').extract_first()
+            if agree is None:
+                agree = 0
+            else:
+                agree = int(agree)
+
+            item['resp'].append(
+                {replay_user.strip(): {'agree': agree, 'resp_content': rep_content.strip()}})
 
         current_page+=1
 
-        yield Request(url=self.MULTI_PAGE_DETAIL.format(question_id, current_page), headers=self.headers,
-                      callback=self.multi_page_detail, dont_filter=True,
-                      meta={'last_resp_date': last_resp_date, 'question_id': question_id, 'page': current_page, '_item': _item})
-
-
+        if current_page<=total_page:
+            print(f'页码{current_page}/{total_page}')
+            yield Request(url=self.MULTI_PAGE_DETAIL.format(question_id, current_page), headers=self.headers,
+                              callback=self.multi_page_detail, dont_filter=True,
+                              meta={'question_id': question_id, 'page': current_page,'total_page':total_page,
+                                    'item': item})
+        else:
+            yield item
