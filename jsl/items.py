@@ -15,11 +15,11 @@ class JslItem(scrapy.Item):
     creator = scrapy.Field()
     content = scrapy.Field()
     url = scrapy.Field()
-    html=scrapy.Field()
+    html = scrapy.Field()
     question_id = scrapy.Field()
     createTime = scrapy.Field()
     resp_no = scrapy.Field()
-    resp = scrapy.Field() # list
+    resp = scrapy.Field()  # list
     crawlTime = scrapy.Field()
     last_resp_date = scrapy.Field()
 
@@ -36,7 +36,4 @@ class Relationship(scrapy.Item):
     fans_list = scrapy.Field()
     crawltime = scrapy.Field()
 
-class UpdateItem(scrapy.Item):
-    question_id = scrapy.Field()
-    resp=scrapy.Field()
-    crawltime = scrapy.Field()
+
