@@ -131,7 +131,7 @@ class AllcontentSpider(scrapy.Spider):
         try:
             item['creator'] = response.xpath('//div[@class="aw-side-bar-mod-body"]/dl/dd/a/text()').extract_first()
         except Exception as e:
-            print(e)
+            logging.error(e)
             item['creator'] = None
 
         item['title'] = title.strip()
@@ -139,7 +139,6 @@ class AllcontentSpider(scrapy.Spider):
         try:
             item['resp_no'] = int(resp_no)
         except Exception as e:
-            # logging.warning(e)
             logging.warning('没有回复')
             item['resp_no'] = 0
 
@@ -197,7 +196,6 @@ class AllcontentSpider(scrapy.Spider):
         question_id = response.meta['question_id']
 
         resp_len = response.xpath('//div[@class="aw-mod-body aw-dynamic-topic"]/div[@class="aw-item"]/div')
-        print('本页回复数目{}'.format(len(resp_len)))
 
         for index, reply in enumerate(
                 response.xpath('//div[@class="aw-mod-body aw-dynamic-topic"]/div[@class="aw-item"]')):
@@ -222,7 +220,6 @@ class AllcontentSpider(scrapy.Spider):
         current_page+=1
 
         if current_page<=total_page:
-            print(f'页码{current_page}/{total_page}')
             yield Request(url=self.MULTI_PAGE_DETAIL.format(question_id, current_page), headers=self.headers,
                               callback=self.multi_page_detail, dont_filter=True,
                               meta={'question_id': question_id, 'page': current_page,'total_page':total_page,
