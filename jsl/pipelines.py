@@ -5,12 +5,13 @@
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: http://doc.scrapy.org/en/latest/topics/item-pipeline.html
 import datetime
+import logging
 
 import pymongo
 from collections import OrderedDict
 
 from scrapy.exporters import JsonLinesItemExporter
-from jsl.items import Relationship, JslItem, UpdateItem
+from jsl.items import Relationship, JslItem
 from jsl import config
 
 
@@ -46,15 +47,14 @@ class JslPipeline(object):
                                                 }
                                                )
                 except Exception as e:
-                    print(e)
-                else:
-                    print(f'更新评论id: {item["question_id"]}')
+                    logging.error(e)
+
 
             else:
                 try:
                     self.collection.insert_one(OrderedDict(item))
                 except Exception as e:
-                    print(e)
+                    logging.error(e)
 
         elif isinstance(item, Relationship):  # 这里会比较复杂
 
