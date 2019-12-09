@@ -76,7 +76,7 @@ class AllcontentSpider(scrapy.Spider):
         current_page = response.meta['page']
 
         nodes = response.xpath('//div[@class="aw-question-list"]/div')
-        last_resp_date = None
+        # last_resp_date = None
 
         for node in nodes:
             each_url = node.xpath('.//h4/a/@href').extract_first()
@@ -85,32 +85,29 @@ class AllcontentSpider(scrapy.Spider):
                 # '回复  • 2018-12-10 09:49 • 46335 次浏览'
                 last_resp_date = re.search('• (.*?) •', last_resp_date).group(1)
             except:
-                last_resp_date = None
-                print('failed to find date')
-
+                logging.error('failed to find date')
             else:
                 # 访问详情
                 # 替换成这个 'https://www.jisilu.cn/question/320215&sort_key=agree_count&sort=DESC'
                 # '"https://www.jisilu.cn/question/336326"'
                 if re.search('www.jisilu.cn/question/\d+', each_url):
                     question_id = re.search('www.jisilu.cn/question/(\d+)', each_url).group(1)
-
+                    last_resp_date_dt = datetime.datetime.strptime(last_resp_date, '%Y-%m-%d %H:%M')
                     yield Request(url=self.DETAIL_URL.format(question_id), headers=self.headers,
                                   callback=self.check_detail, dont_filter=True,
                                   meta={'last_resp_date': last_resp_date, 'question_id': question_id})
 
-        last_resp_date_dt = datetime.datetime.strptime(last_resp_date, '%Y-%m-%d %H:%M')
+                    # last_resp_date_dt = datetime.datetime.strptime(last_resp_date, '%Y-%m-%d %H:%M')
 
-        # 继续翻页
-        if self.last_week < last_resp_date_dt:
-            current_page += 1
-            yield Request(url=self.URL.format(current_page), headers=self.headers, callback=self.parse_page,
-                          dont_filter=True, meta={'page': current_page})
+                    # 继续翻页
+                    if self.last_week <= last_resp_date_dt:
+                        current_page += 1
+                        yield Request(url=self.URL.format(current_page), headers=self.headers, callback=self.parse_page,
+                                      dont_filter=True, meta={'page': current_page})
 
     def check_detail(self, response):
         question_id = response.meta['question_id']
         more_page = response.xpath('//div[@class="pagination pull-right"]')
-        last_resp_date = response.meta['last_resp_date']
 
         item = JslItem()
         title = response.xpath('//div[@class="aw-mod-head"]/h1/text()').extract_first()
@@ -120,7 +117,8 @@ class AllcontentSpider(scrapy.Spider):
 
         try:
             content = ret[0].strip()
-        except:
+        except Exception as e:
+            logging.error(e)
             content = None
 
         createTime = response.xpath('//div[@class="aw-question-detail-meta"]/div/span/text()').extract_first()
