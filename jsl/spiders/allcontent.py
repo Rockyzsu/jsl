@@ -91,16 +91,15 @@ class AllcontentSpider(scrapy.Spider):
                 # 替换成这个 'https://www.jisilu.cn/question/320215&sort_key=agree_count&sort=DESC'
                 # '"https://www.jisilu.cn/question/336326"'
                 if re.search('www.jisilu.cn/question/\d+', each_url):
-                    question_id = re.search('www.jisilu.cn/question/(\d+)', each_url).group(1)
-                    last_resp_date_dt = datetime.datetime.strptime(last_resp_date, '%Y-%m-%d %H:%M')
+                    question_id = re.search('www\.jisilu\.cn/question/(\d+)', each_url).group(1)
+                    last_resp_date = datetime.datetime.strptime(last_resp_date, '%Y-%m-%d %H:%M')
                     yield Request(url=self.DETAIL_URL.format(question_id), headers=self.headers,
                                   callback=self.check_detail, dont_filter=True,
                                   meta={'last_resp_date': last_resp_date, 'question_id': question_id})
 
-                    # last_resp_date_dt = datetime.datetime.strptime(last_resp_date, '%Y-%m-%d %H:%M')
 
                     # 继续翻页
-                    if self.last_week <= last_resp_date_dt:
+                    if self.last_week <= last_resp_date:
                         current_page += 1
                         yield Request(url=self.URL.format(current_page), headers=self.headers, callback=self.parse_page,
                                       dont_filter=True, meta={'page': current_page})
