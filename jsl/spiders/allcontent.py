@@ -94,17 +94,20 @@ class AllcontentSpider(scrapy.Spider):
                     question_id = re.search('www\.jisilu\.cn/question/(\d+)', each_url).group(1)
                     last_resp_date = datetime.datetime.strptime(last_resp_date, '%Y-%m-%d %H:%M')
                     yield Request(url=self.DETAIL_URL.format(question_id), headers=self.headers,
-                                  callback=self.check_detail, dont_filter=True,
+                                  callback=self.check_detail,
                                   meta={'last_resp_date': last_resp_date, 'question_id': question_id})
 
 
                     # 继续翻页
-                    if self.last_week <= last_resp_date:
+                    if self.last_week < last_resp_date:
+                        logging.info('last_resp_date ===== {}'.format(last_resp_date))
+
                         current_page += 1
                         yield Request(url=self.URL.format(current_page), headers=self.headers, callback=self.parse_page,
-                                      dont_filter=True, meta={'page': current_page})
+                                    meta={'page': current_page})
 
     def check_detail(self, response):
+
         question_id = response.meta['question_id']
         more_page = response.xpath('//div[@class="pagination pull-right"]')
 
@@ -138,7 +141,7 @@ class AllcontentSpider(scrapy.Spider):
         try:
             item['resp_no'] = int(resp_no)
         except Exception as e:
-            logging.warning('没有回复')
+            # logging.warning('没有回复')
             item['resp_no'] = 0
 
         item['createTime'] = createTime.replace('发表时间 ', '')
@@ -155,7 +158,7 @@ class AllcontentSpider(scrapy.Spider):
             item['resp']=[]
 
             yield Request(url=self.MULTI_PAGE_DETAIL.format(question_id, 1), headers=self.headers,
-                              callback=self.multi_page_detail, dont_filter=True,
+                              callback=self.multi_page_detail,
                               meta={'question_id': question_id, 'page': 1,'total_page':total_page,
                                     'item': item})
 
@@ -220,7 +223,7 @@ class AllcontentSpider(scrapy.Spider):
 
         if current_page<=total_page:
             yield Request(url=self.MULTI_PAGE_DETAIL.format(question_id, current_page), headers=self.headers,
-                              callback=self.multi_page_detail, dont_filter=True,
+                              callback=self.multi_page_detail,
                               meta={'question_id': question_id, 'page': current_page,'total_page':total_page,
                                     'item': item})
         else:
