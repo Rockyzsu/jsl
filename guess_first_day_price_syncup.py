@@ -104,9 +104,6 @@ def parse(text):
 
 def main(url,name):
     login()
-
-    # url = 'https://www.jisilu.cn/question/337327'
-    # name='浦发转债'
     predict(url,name)
 
 if __name__ == '__main__':
@@ -116,4 +113,3 @@ if __name__ == '__main__':
         url=sys.argv[1]
         name =sys.argv[2]
         main(url,name)
-    # main('','')
