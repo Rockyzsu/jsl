@@ -2,3 +2,5 @@
 .idea
 config.py
 *.log
+settings.py
+data.cfg
