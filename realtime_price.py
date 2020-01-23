@@ -55,8 +55,12 @@ while 1:
     if name=='q':
         print('退出')
         break
-
-    response = session.post('https://www.jisilu.cn/data/cbnew/cb_list/', headers=headers, params=params, cookies=cookies, data=data)
+    try:
+        response = session.post('https://www.jisilu.cn/data/cbnew/cb_list/', headers=headers, params=params, cookies=cookies, data=data,timeout=3)
+    except:
+        print('网络超时')
+        continue
+        
     ret = response.json()
 
     for body_dict in ret.get('rows',[]):

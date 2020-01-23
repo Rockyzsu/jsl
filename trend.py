@@ -10,12 +10,12 @@ import pandas as pd
 from settings import send_aliyun,llogger
 from config import QQ_MAIL
 
-logger = llogger('trend_.log')
+logger = llogger('log/trend_.log')
 
 db = pymongo.MongoClient('192.168.10.48',17001)
 doc= db['db_parker']['jsl']
 total_list = []
-date = datetime.datetime.now() + datetime.timedelta(days=-365)
+date = datetime.datetime.now() + datetime.timedelta(days=-365) # 一年内的数据
 for item in doc.find({'last_resp_date':{'$gt':date}},{'html':0,'resp':0,'content':0}):
     del item['_id']
     total_list.append(item)
@@ -40,7 +40,7 @@ for index,item in show_data.iterrows():
     print(index,item['creator'])
     py_date = index.to_pydatetime().strftime('%Y-%m-%d')
     count=item['creator']
-    content+=f'| {py_date} | {count} | {percentage[start_index]} |\n'
+    content+=f'| {py_date} | {count} | {percentage[start_index]}% |\n'
     start_index+=1
 content+=f'最大值发生在 {max_index}，贴数为 {max_v}\n'
 logger.info(title)
