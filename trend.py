@@ -7,14 +7,15 @@ import datetime
 import numpy as np
 import pymongo
 import pandas as pd
-from settings import send_aliyun,llogger
-from config import QQ_MAIL
+from settings import send_from_aliyun,llogger,_json_data
 
 last_time = -10 # 多少周之前
 
 logger = llogger('log/trend_.log')
-
-db = pymongo.MongoClient('192.168.10.48',17001)
+host = _json_data['mongo']['qq']['host']
+# host='127.0.0.1'
+port = _json_data['mongo']['qq']['port']
+db = pymongo.MongoClient(host=host,port=port)
 doc= db['db_parker']['jsl']
 total_list = []
 date = datetime.datetime.now() + datetime.timedelta(days=-365) # 一年内的数据
@@ -52,7 +53,7 @@ def main(send_mail=True):
     logger.info(content)
     if send_mail:
         try:
-            send_aliyun(title,content,TO_MAIL_=QQ_MAIL)
+            send_from_aliyun(title,content)
         except Exception as e:
             logger.error(e)
 

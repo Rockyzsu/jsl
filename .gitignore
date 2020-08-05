@@ -4,3 +4,4 @@ config.py
 *.log
 settings.py
 data.cfg
+config.json
