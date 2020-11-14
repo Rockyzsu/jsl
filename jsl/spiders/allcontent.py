@@ -7,7 +7,7 @@ from jsl.items import JslItem
 from jsl import config
 import logging
 
-DAYS = 2
+DAYS = config.DAYS
 
 
 class AllcontentSpider(scrapy.Spider):
@@ -98,13 +98,13 @@ class AllcontentSpider(scrapy.Spider):
                                   meta={'last_resp_date': last_resp_date, 'question_id': question_id})
 
 
-                    # 继续翻页
-                    if self.last_week < last_resp_date:
-                        logging.info('last_resp_date ===== {}'.format(last_resp_date))
+        # 继续翻页
+        if self.last_week < last_resp_date:
+            logging.info('last_resp_date ===== {}'.format(last_resp_date))
 
-                        current_page += 1
-                        yield Request(url=self.URL.format(current_page), headers=self.headers, callback=self.parse_page,
-                                    meta={'page': current_page})
+            current_page += 1
+            yield Request(url=self.URL.format(current_page), headers=self.headers, callback=self.parse_page,
+                        meta={'page': current_page})
 
     def check_detail(self, response):
 
@@ -147,7 +147,7 @@ class AllcontentSpider(scrapy.Spider):
         item['createTime'] = createTime.replace('发表时间 ', '')
         item['crawlTime'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         item['url'] = url.strip()
-        item['html'] = response.text
+        # item['html'] = response.text
         item['last_resp_date'] = response.meta['last_resp_date']
 
         # 多页

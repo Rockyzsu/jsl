@@ -6,4 +6,5 @@
 from scrapy import  cmdline
 
 cmd = 'scrapy crawl questions -s LOG_FILE=log/question.log'
+# cmd = 'scrapy crawl questions'
 cmdline.execute(cmd.split())

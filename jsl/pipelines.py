@@ -9,16 +9,16 @@ import logging
 
 import pymongo
 from collections import OrderedDict
-
 from scrapy.exporters import JsonLinesItemExporter
 from jsl.items import Relationship, JslItem
 from jsl import config
 
 
 class JslPipeline(object):
-    def __init__(self):
 
-        self.db = pymongo.MongoClient(host=config.mongodb_host, port=config.mongodb_port)
+    def __init__(self):
+        connect_uri = f'mongodb://{config.user}:{config.password}@{config.mongodb_host}:{config.mongodb_port}'
+        self.db = pymongo.MongoClient(connect_uri)
         # self.user = u'neo牛3' # 修改为指定的用户名 如 毛之川 ，然后找到用户的id，在用户也的源码哪里可以找到 比如持有封基是8132
         # self.collection = self.db['db_parker']['jsl_20181108_allQuestion_test']
         self.collection = self.db['db_parker']['jsl']
@@ -34,32 +34,44 @@ class JslPipeline(object):
             update_time = datetime.datetime.now()
             item = dict(item)
             item['update_time'] = update_time
-            if self.collection.find_one({'question_id': item['question_id']}):
-                # 更新评论部分
-                try:
-                    self.collection.update_one({'question_id': item['question_id']},
-                                               {'$set':
-                                                    {'resp': item['resp'],
-                                                     'last_resp_date': item['last_resp_date'],
-                                                     'update_time': update_time
-                                                     },
 
-                                                }
-                                               )
-                except Exception as e:
-                    logging.error(e)
+            try:
+                only_add = item['only_add']
+            except Exception as e:
+                only_add = False
+
+
+            if self.collection.find_one({'question_id': item['question_id']},{'_id':1}):
+                # 更新评论部分
+                if not only_add:
+
+                    try:
+                        self.collection.update_one({'question_id': item['question_id']},
+                                                   {'$set':
+                                                        {'resp': item['resp'],
+                                                         'resp_no':item['resp_no'],
+                                                         'last_resp_date': item['last_resp_date'],
+                                                         'update_time': update_time
+                                                         },
+
+                                                    }
+                                                   )
+                    except Exception as e:
+                        logging.error(e)
 
 
             else:
                 try:
-                    self.collection.insert_one(OrderedDict(item))
+                    # data = OrderedDict(item)
+                    # del item['only_add']
+                    self.collection.insert_one(item)
                 except Exception as e:
                     logging.error(e)
 
         elif isinstance(item, Relationship):  # 这里会比较复杂
 
             # 存在
-            if list(self.relations.find({'user_id': item['user_id']})):
+            if list(self.relations.find({'user_id': item['user_id']},{'_id':1})):
                 if item['flag'] == 'follow':  # 粉丝
                     follows_list = item['follows_list']
                     for follower in follows_list:
@@ -93,3 +105,4 @@ class ElasticPipeline(object):
     def close_spider(self, spider):
         self.fp.close()
         print('爬虫结束')
+

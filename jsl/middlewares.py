@@ -4,9 +4,11 @@
 #
 # See documentation in:
 # http://doc.scrapy.org/en/latest/topics/spider-middleware.html
+import time
 
+import requests
 from scrapy import signals
-
+from jsl.config import proxy_ip
 
 class JslSpiderMiddleware(object):
     # Not all methods need to be defined. If a method is not defined,
@@ -54,3 +56,28 @@ class JslSpiderMiddleware(object):
 
     def spider_opened(self, spider):
         spider.logger.info('Spider opened: %s' % spider.name)
+
+class MyCustomDownloaderMiddleware(object):
+    def __init__(self):
+        self.proxyurl = 'http://{}:8101/dynamicIp/common/getDynamicIp.do'.format(proxy_ip)
+
+    def process_request(self, request, spider):
+        proxyServer = self.get_proxy()
+        print('使用了代理')
+        print(proxyServer)
+        request.meta["proxy"] = proxyServer
+
+    def get_proxy(self, retry=50):
+        for i in range(retry):
+            try:
+                r = requests.get(self.proxyurl, timeout=10)
+            except Exception as e:
+                print(e)
+                print('Failed to get proxy ip, retry ' + str(i))
+                time.sleep(1)
+            else:
+                js = r.json()
+                proxyServer = 'https://{0}:{1}'.format(js.get('ip'), js.get('port'))
+                return proxyServer
+
+        return None

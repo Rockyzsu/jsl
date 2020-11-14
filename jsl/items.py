@@ -22,7 +22,7 @@ class JslItem(scrapy.Item):
     resp = scrapy.Field()  # list
     crawlTime = scrapy.Field()
     last_resp_date = scrapy.Field()
-
+    only_add = scrapy.Field()
 
 class Relationship(scrapy.Item):
     user_id = scrapy.Field()
