@@ -6,6 +6,7 @@ from scrapy import Request, FormRequest
 from jsl.items import JslItem
 from jsl import config
 import logging
+from jsl.spiders.aes_encode import decoder
 
 DAYS = config.DAYS
 
@@ -48,10 +49,12 @@ class AllcontentSpider(scrapy.Spider):
 
     def login(self, response):
         url = 'https://www.jisilu.cn/account/ajax/login_process/'
+        username = decoder(config.jsl_user)
+        jsl_password = decoder(config.jsl_password)
         data = {
             'return_url': 'https://www.jisilu.cn/',
-            'user_name': config.jsl_user,
-            'password': config.jsl_password,
+            'user_name': username,
+            'password': jsl_password,
             'net_auto_login': '1',
             '_post_type': 'ajax',
         }
@@ -65,7 +68,7 @@ class AllcontentSpider(scrapy.Spider):
         )
 
     def parse(self, response):
-
+        print('登录后', response.text)
         focus_url = self.URL.format(self.start_page)
 
         yield Request(url=focus_url, headers=self.headers, callback=self.parse_page, dont_filter=True,
@@ -97,16 +100,18 @@ class AllcontentSpider(scrapy.Spider):
                                   callback=self.check_detail,
                                   meta={'last_resp_date': last_resp_date, 'question_id': question_id})
 
-
         # 继续翻页
         if self.last_week < last_resp_date:
             logging.info('last_resp_date ===== {}'.format(last_resp_date))
 
             current_page += 1
             yield Request(url=self.URL.format(current_page), headers=self.headers, callback=self.parse_page,
-                        meta={'page': current_page})
+                          meta={'page': current_page})
 
     def check_detail(self, response):
+
+        if '您访问的资源需要购买会员' in response.text:
+            return
 
         question_id = response.meta['question_id']
         more_page = response.xpath('//div[@class="pagination pull-right"]')
@@ -154,17 +159,17 @@ class AllcontentSpider(scrapy.Spider):
         if more_page:
 
             total_resp_no = item['resp_no']
-            total_page = total_resp_no//100+1
-            item['resp']=[]
+            total_page = total_resp_no // 100 + 1
+            item['resp'] = []
 
             yield Request(url=self.MULTI_PAGE_DETAIL.format(question_id, 1), headers=self.headers,
-                              callback=self.multi_page_detail,
-                              meta={'question_id': question_id, 'page': 1,'total_page':total_page,
-                                    'item': item})
+                          callback=self.multi_page_detail,
+                          meta={'question_id': question_id, 'page': 1, 'total_page': total_page,
+                                'item': item})
 
         else:
 
-            resp_=[]
+            resp_ = []
             # 回复内容
             for index, reply in enumerate(
                     response.xpath('//div[@class="aw-mod-body aw-dynamic-topic"]/div[@class="aw-item"]')):
@@ -219,12 +224,12 @@ class AllcontentSpider(scrapy.Spider):
             item['resp'].append(
                 {replay_user.strip(): {'agree': agree, 'resp_content': rep_content.strip()}})
 
-        current_page+=1
+        current_page += 1
 
-        if current_page<=total_page:
+        if current_page <= total_page:
             yield Request(url=self.MULTI_PAGE_DETAIL.format(question_id, current_page), headers=self.headers,
-                              callback=self.multi_page_detail,
-                              meta={'question_id': question_id, 'page': current_page,'total_page':total_page,
-                                    'item': item})
+                          callback=self.multi_page_detail,
+                          meta={'question_id': question_id, 'page': current_page, 'total_page': total_page,
+                                'item': item})
         else:
             yield item

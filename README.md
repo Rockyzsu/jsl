@@ -1,6 +1,10 @@
 # jsl
 抓取集思录指定的用户的帖子，存档到mongo
 
+#### 2020-11-27更新 加入登录JS加密与解密
+[http://30daydo.com/article/44109](http://30daydo.com/article/44109)
+
+<br>
 使用方法：
 安装scrapy + pymongo, 安装mongo服务器
 
@@ -13,3 +17,4 @@ self.user = u'毛之川'  # 修改为指定的用户名 如 毛之川
 #### 新增爬取全站数据
 
 #### guess_first_day_price_syncup.py 估算可转债上市价格
+
