@@ -8,7 +8,7 @@ from jsl import config
 import logging
 from jsl.spiders.aes_encode import decoder
 
-DAYS = config.DAYS
+
 
 
 class AllcontentSpider(scrapy.Spider):
@@ -27,12 +27,25 @@ class AllcontentSpider(scrapy.Spider):
 
     start_page = 1
 
-    last_week = datetime.datetime.now() + datetime.timedelta(days=-1 * DAYS)
 
-    URL = 'https://www.jisilu.cn/home/explore/sort_type-add_time__category-__day-0__is_recommend-__page-{}'
-
+    POST_DATE_URL = 'https://www.jisilu.cn/home/explore/sort_type-add_time__category-__day-0__is_recommend-__page-{}' # 发帖日期
+    RESP_DATE_URL = 'https://www.jisilu.cn/home/explore/sort_type-new__category-__day-0__is_recommend-__page-{}' # 回帖按照日期
     DETAIL_URL = 'https://www.jisilu.cn/question/{}&sort_key=agree_count&sort=DESC'
     MULTI_PAGE_DETAIL = 'https://www.jisilu.cn/question/id-{}__sort_key-__sort-DESC__uid-__page-{}'
+
+    def __init__(self,daily='yes',*args,**kwargs):
+        if daily=='yes':
+            self.DAYS = config.DAYS
+            self.URL = self.POST_DATE_URL
+        elif daily=='no':
+            # 全站爬取
+            self.logger.info('全站爬取')
+            self.DAYS = 365*2 # 获取2年的帖子
+            self.URL = self.RESP_DATE_URL
+        else:
+            return
+        self.last_week = datetime.datetime.now() + datetime.timedelta(days=-1 * self.DAYS)
+
 
     def start_requests(self):
 
@@ -194,7 +207,6 @@ class AllcontentSpider(scrapy.Spider):
             yield item
 
     # 详情页
-
     def multi_page_detail(self, response):
 
         current_page = response.meta['page']

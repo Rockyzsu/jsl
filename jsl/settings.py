@@ -25,9 +25,9 @@ ROBOTSTXT_OBEY = False
 
 #CONCURRENT_REQUESTS = 32
 # LOG_LEVEL='INFO'
-CONCURRENT_REQUESTS = 2
+# CONCURRENT_REQUESTS = 2
 LOG_LEVEL='INFO'
-DOWNLOAD_DELAY = 1
+# DOWNLOAD_DELAY = 1
 # REDIRECT_ENABLED = False
 # Configure a delay for requests for the same website (default: 0)
 # See http://scrapy.readthedocs.org/en/latest/topics/settings.html#download-delay

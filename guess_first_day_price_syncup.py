@@ -5,13 +5,10 @@
 
 # 同步获取
 import sys
-
-import requests
 import time
 from selenium import webdriver
 from scrapy.selector import Selector
-import config
-import numpy as np
+from jsl import config
 import pymongo
 
 

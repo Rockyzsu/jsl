@@ -1,23 +1,13 @@
 # 每天的热帖
 
 import datetime
-import numpy as np
 import pymongo
-import pandas as pd
-from settings import send_from_aliyun, llogger, _json_data
-import re
+from settings import send_from_aliyun,DBSelector
 
 last_time = -10  # 多少周之前
 
-logger = llogger('log/trend_.log')
-qq = _json_data['mongo']['qq']
-host = qq['host']
-port = qq['port']
-user = qq['user']
-password = qq['password']
 
-connect_uri = f'mongodb://{user}:{password}@{host}:{port}'
-db = pymongo.MongoClient(connect_uri)
+db=DBSelector().mongo()
 MAX = 1000
 current = datetime.datetime.now()
 
@@ -45,8 +35,8 @@ def main():
         send_from_aliyun(title,html,types='html')
 
     except Exception as e:
+        # logger.error(e)
         print(e)
-
 
 
 def format_mail(hot_list):
