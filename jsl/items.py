@@ -14,6 +14,7 @@ class JslItem(scrapy.Item):
     title = scrapy.Field()
     creator = scrapy.Field()
     content = scrapy.Field()
+    content_html = scrapy.Field()
     url = scrapy.Field()
     html = scrapy.Field()
     question_id = scrapy.Field()
@@ -21,6 +22,7 @@ class JslItem(scrapy.Item):
     resp_no = scrapy.Field()
     resp = scrapy.Field()  # list
     crawlTime = scrapy.Field()
+    # type_ = scrapy.Field()
     last_resp_date = scrapy.Field()
     only_add = scrapy.Field()
 
