@@ -4,6 +4,7 @@ config.py
 *.log
 settings.py
 data.cfg
-config.json
+config_path/config.json
 config_.py
 creator.txt
+userinfo.py
