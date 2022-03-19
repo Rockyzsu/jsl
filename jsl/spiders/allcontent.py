@@ -7,9 +7,9 @@ from jsl.items import JslItem
 from jsl import config
 import logging
 from jsl.spiders.aes_encode import decoder
+import pymongo
 
-
-
+# 按照日期爬取, 会损失新人贴
 
 class AllcontentSpider(scrapy.Spider):
     name = 'allcontent'
@@ -27,25 +27,32 @@ class AllcontentSpider(scrapy.Spider):
 
     start_page = 1
 
-
-    POST_DATE_URL = 'https://www.jisilu.cn/home/explore/sort_type-add_time__category-__day-0__is_recommend-__page-{}' # 发帖日期
-    RESP_DATE_URL = 'https://www.jisilu.cn/home/explore/sort_type-new__category-__day-0__is_recommend-__page-{}' # 回帖按照日期
+    POST_DATE_URL = 'https://www.jisilu.cn/home/explore/sort_type-add_time__category-__day-0__is_recommend-__page-{}'  # 发帖日期
+    RESP_DATE_URL = 'https://www.jisilu.cn/home/explore/sort_type-new__category-__day-0__is_recommend-__page-{}'  # 回帖按照日期
     DETAIL_URL = 'https://www.jisilu.cn/question/{}&sort_key=agree_count&sort=DESC'
     MULTI_PAGE_DETAIL = 'https://www.jisilu.cn/question/id-{}__sort_key-__sort-DESC__uid-__page-{}'
 
-    def __init__(self,daily='yes',*args,**kwargs):
-        if daily=='yes':
+    def __init__(self, daily='yes', *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if daily == 'yes':
             self.DAYS = config.DAYS
             self.URL = self.POST_DATE_URL
-        elif daily=='no':
+
+        elif daily == 'no':
             # 全站爬取
             self.logger.info('全站爬取')
-            self.DAYS = 365*2 # 获取2年的帖子
-            self.URL = self.RESP_DATE_URL
+            self.DAYS = 365 * 2  # 获取2年的帖子
+            self.URL = self.RESP_DATE_URL # 根据回复时间
         else:
             return
         self.last_week = datetime.datetime.now() + datetime.timedelta(days=-1 * self.DAYS)
 
+
+        connect_uri = f'mongodb://{config.user}:{config.password}@{config.mongodb_host}:{config.mongodb_port}'
+        self.db = pymongo.MongoClient(connect_uri)
+        # self.user = u'neo牛3' # 修改为指定的用户名 如 毛之川 ，然后找到用户的id，在用户也的源码哪里可以找到 比如持有封基是8132
+        self.collection = self.db['db_parker'][config.doc_name]
 
     def start_requests(self):
 
@@ -80,8 +87,8 @@ class AllcontentSpider(scrapy.Spider):
             dont_filter=True
         )
 
-    def parse(self, response):
-        print('登录后', response.text)
+    def parse(self, response, **kwargs):
+        # print('登录后', response.text)
         focus_url = self.URL.format(self.start_page)
 
         yield Request(url=focus_url, headers=self.headers, callback=self.parse_page, dont_filter=True,
@@ -92,9 +99,10 @@ class AllcontentSpider(scrapy.Spider):
         current_page = response.meta['page']
 
         nodes = response.xpath('//div[@class="aw-question-list"]/div')
-        # last_resp_date = None
+        last_resp_date = None
 
         for node in nodes:
+
             each_url = node.xpath('.//h4/a/@href').extract_first()
             try:
                 last_resp_date = node.xpath('.//div[@class="aw-questoin-content"]/span/text()').extract()[-1].strip()
@@ -102,24 +110,46 @@ class AllcontentSpider(scrapy.Spider):
                 last_resp_date = re.search('• (.*?) •', last_resp_date).group(1)
             except:
                 logging.error('failed to find date')
+                continue
             else:
                 # 访问详情
                 # 替换成这个 'https://www.jisilu.cn/question/320215&sort_key=agree_count&sort=DESC'
                 # '"https://www.jisilu.cn/question/336326"'
                 if re.search('www.jisilu.cn/question/\d+', each_url):
                     question_id = re.search('www\.jisilu\.cn/question/(\d+)', each_url).group(1)
+
+                    # if self.question_exist(question_id):
+                        # continue
+
+                    # print(f'{question_id}帖子不存在，下载')
+
                     last_resp_date = datetime.datetime.strptime(last_resp_date, '%Y-%m-%d %H:%M')
                     yield Request(url=self.DETAIL_URL.format(question_id), headers=self.headers,
                                   callback=self.check_detail,
                                   meta={'last_resp_date': last_resp_date, 'question_id': question_id})
 
         # 继续翻页
-        if self.last_week < last_resp_date:
-            logging.info('last_resp_date ===== {}'.format(last_resp_date))
+        # print(last_resp_date)
+        if last_resp_date is not None and isinstance(last_resp_date,str):
+            last_resp_date = datetime.datetime.strptime(last_resp_date, '%Y-%m-%d %H:%M')
+
+        if last_resp_date is not None and (self.last_week < last_resp_date):
+            # logging.info('last_resp_date ===== {}'.format(last_resp_date))
 
             current_page += 1
             yield Request(url=self.URL.format(current_page), headers=self.headers, callback=self.parse_page,
                           meta={'page': current_page})
+
+    def question_exist(self,_id):
+        return True if self.collection.find_one({'question_id':_id},{'_id':1}) else False
+
+    def compose_content(self,content_list):
+        string = ""
+        for line in content_list:
+            line = line.strip()
+            if len(line)>0:
+                string+=line+'\n'
+        return string
 
     def check_detail(self, response):
 
@@ -127,19 +157,28 @@ class AllcontentSpider(scrapy.Spider):
             return
 
         question_id = response.meta['question_id']
+        last_resp_date=response.meta['last_resp_date']
         more_page = response.xpath('//div[@class="pagination pull-right"]')
 
         item = JslItem()
-        title = response.xpath('//div[@class="aw-mod-head"]/h1/text()').extract_first()
-        s = response.xpath('//div[@class="aw-question-detail-txt markitup-box"]').xpath('string(.)').extract_first()
-        ret = re.findall('(.*?)\.donate_user_avatar', s, re.S)
-        item['question_id'] = question_id
+        item['last_resp_date'] = last_resp_date
 
-        try:
-            content = ret[0].strip()
-        except Exception as e:
-            logging.error(e)
-            content = None
+        title = response.xpath('//div[@class="aw-mod-head"]/h1/text()').extract_first()
+        item['question_id'] = question_id
+        content_node = response.xpath('//div[@class="aw-question-detail-txt markitup-box"]')
+
+        content_html = content_node.extract_first() # 获取到源码
+
+        # s = response.xpath('//div[@class="aw-question-detail-txt markitup-box"]').xpath('string(.)').extract_first()
+        # ret = re.findall('(.*?)\.donate_user_avatar', s, re.S)
+        # try:
+        #     content = ret[0].strip()
+        # except Exception as e:
+        #     # logging.error(e)
+        #     content = None
+
+        content_list = content_node.xpath('string(.)').extract()
+        content_str = self.compose_content(content_list)
 
         createTime = response.xpath('//div[@class="aw-question-detail-meta"]/div/span/text()').extract_first()
         # 'aw-question-detail-meta'
@@ -151,22 +190,25 @@ class AllcontentSpider(scrapy.Spider):
         try:
             item['creator'] = response.xpath('//div[@class="aw-side-bar-mod-body"]/dl/dd/a/text()').extract_first()
         except Exception as e:
-            logging.error(e)
+            # logging.error(e)
             item['creator'] = None
 
         item['title'] = title.strip()
-        item['content'] = content
+        item['content'] = content_str
+        item['content_html'] = content_html
+
         try:
             item['resp_no'] = int(resp_no)
         except Exception as e:
             # logging.warning('没有回复')
             item['resp_no'] = 0
-
+        if createTime is None:
+            # print(title)
+            # print(content)
+            return
         item['createTime'] = createTime.replace('发表时间 ', '')
         item['crawlTime'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        item['url'] = url.strip()
-        # item['html'] = response.text
-        item['last_resp_date'] = response.meta['last_resp_date']
+        item['url'] = url.strip().replace('&sort_key=agree_count&sort=DESC','')
 
         # 多页
         if more_page:
@@ -203,6 +245,7 @@ class AllcontentSpider(scrapy.Spider):
                     {replay_user.strip(): {'agree': agree, 'resp_content': rep_content.strip()}})
 
             item['resp'] = resp_
+            item['only_add']=True
 
             yield item
 
@@ -237,11 +280,12 @@ class AllcontentSpider(scrapy.Spider):
                 {replay_user.strip(): {'agree': agree, 'resp_content': rep_content.strip()}})
 
         current_page += 1
-
+        # item['resp_no']=len(item['resp'])
         if current_page <= total_page:
             yield Request(url=self.MULTI_PAGE_DETAIL.format(question_id, current_page), headers=self.headers,
                           callback=self.multi_page_detail,
                           meta={'question_id': question_id, 'page': current_page, 'total_page': total_page,
                                 'item': item})
         else:
+            item['only_add']=True
             yield item
