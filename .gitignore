@@ -8,3 +8,4 @@ config_path/config.json
 config_.py
 creator.txt
 userinfo.py
+.ipynb_checkpoints/
