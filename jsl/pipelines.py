@@ -21,7 +21,7 @@ class JslPipeline(object):
         self.db = pymongo.MongoClient(connect_uri)
         # self.user = u'neo牛3' # 修改为指定的用户名 如 毛之川 ，然后找到用户的id，在用户也的源码哪里可以找到 比如持有封基是8132
         # self.collection = self.db['db_parker']['jsl_20181108_allQuestion_test']
-        self.collection = self.db['db_parker']['jsl']
+        self.collection = self.db['db_parker'][config.doc_name]
         self.relations = self.db['db_parker']['jsl_relationship']
         try:
             self.collection.ensure_index('question_id', unique=True)
@@ -35,35 +35,48 @@ class JslPipeline(object):
             item = dict(item)
             item['update_time'] = update_time
 
-            try:
-                only_add = item['only_add']
-            except Exception as e:
-                only_add = False
-
 
             if self.collection.find_one({'question_id': item['question_id']},{'_id':1}):
-                # 更新评论部分
+                # 更新评论部分, 不更新就退出
+                only_add = False
+
+                try:
+                    only_add = item['only_add']
+
+                except Exception as e:
+                    pass
+
                 if not only_add:
+                    resp_no = self.collection.find_one({'question_id': item['question_id']},{'resp_no':1})
+                    resp_no_num = resp_no.get('resp_no')
 
-                    try:
-                        self.collection.update_one({'question_id': item['question_id']},
-                                                   {'$set':
-                                                        {'resp': item['resp'],
-                                                         'resp_no':item['resp_no'],
-                                                         'last_resp_date': item['last_resp_date'],
-                                                         'update_time': update_time
-                                                         },
+                    if resp_no_num<item['resp_no']:
 
-                                                    }
-                                                   )
-                    except Exception as e:
-                        logging.error(e)
+                        print('最新的评论数多于数据库，更新')
+                        try:
+                            self.collection.update_one({'question_id': item['question_id']},
+                                                       {'$set':
+                                                            {'resp': item['resp'],
+                                                             'resp_no':item['resp_no'],
+                                                             'last_resp_date': item['last_resp_date'],
+                                                             'update_time': update_time
+                                                             },
+
+                                                        }
+                                                       )
+                        except Exception as e:
+                            logging.error(e)
+                        else:
+                            print('更新完毕')
+
+                    else:
+                        print('已有评论数目一样，跳过')
 
 
             else:
+                # 直接新增
                 try:
-                    # data = OrderedDict(item)
-                    # del item['only_add']
+                    print('新增{}'.format(item['question_id']))
                     self.collection.insert_one(item)
                 except Exception as e:
                     logging.error(e)
