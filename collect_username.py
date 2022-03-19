@@ -3,17 +3,14 @@
 # @Time : 2020/9/5 14:25
 # @File : collect_username.py
 import pymongo
-from settings import _json_data
 import codecs
 from loguru import logger
+from jsl import config
 
-host = _json_data['mongo']['qq']['host']
-port = _json_data['mongo']['qq']['port']
-user = _json_data['mongo']['qq']['port']
 connect_uri = f'mongodb://{config.user}:{config.password}@{config.mongodb_host}:{config.mongodb_port}'
 client = pymongo.MongoClient(connect_uri)
 
-doc = client['db_parker']['jsl']
+doc = client['db_parker'][config.doc_name]
 
 def collect_creator():
     creators = doc.find({},{'creator':1})
