@@ -6,7 +6,7 @@
 import execjs
 import os
 key = '397151C04723421F'
-filename = '集思录.js'
+filename = 'encode_jsl.js'
 path = os.path.dirname(os.path.abspath(__file__))
 full_path = os.path.join(path,filename)
 
