@@ -5,12 +5,9 @@
 import codecs
 import json
 import threading
-import pymongo
 import requests
 import time
 from loguru import logger
-# from settings import _json_data
-import config_
 import redis
 
 THREAD_NUM =50
