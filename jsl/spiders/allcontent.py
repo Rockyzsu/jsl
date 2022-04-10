@@ -52,7 +52,7 @@ class AllcontentSpider(scrapy.Spider):
         connect_uri = f'mongodb://{config.user}:{config.password}@{config.mongodb_host}:{config.mongodb_port}'
         self.db = pymongo.MongoClient(connect_uri)
         # self.user = u'neo牛3' # 修改为指定的用户名 如 毛之川 ，然后找到用户的id，在用户也的源码哪里可以找到 比如持有封基是8132
-        self.collection = self.db['db_parker'][config.doc_name]
+        self.collection = self.db[config.db_name][config.doc_name]
 
     def start_requests(self):
 
