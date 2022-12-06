@@ -18,3 +18,5 @@ self.user = u'毛之川'  # 修改为指定的用户名 如 毛之川
 
 #### guess_first_day_price_syncup.py 估算可转债上市价格
 
+### 关注公众号: 可转债量化分析
+![可转债量化分析](http://xximg.30daydo.com/picgo/kzz.jpg)
