@@ -10,6 +10,7 @@ from twisted.web.client import getPage
 from twisted.internet import reactor
 from twisted.internet import defer
 from scrapy.selector import Selector
+from jsl.question_parser import QuestionPageMixin
 import numpy as np
 
 result_list = []
@@ -20,13 +21,16 @@ def get_response_callback(content):
     text = str(content,encoding='utf-8')
     # print(text)
     response = Selector(text=text)
-    nodes = response.xpath('//div[@class="aw-mod-body aw-dynamic-topic"]/div')
+    nodes = response.css('.aw-dynamic-topic > .aw-item')
     for node in nodes:
-        reply = node.xpath('.//div[@class="markitup-box"]/text()').extract_first()
+        reply = QuestionPageMixin.content_text(node.css('.aw-dynamic-topic-content .markitup-box'))
         if reply:
             reply = reply.strip()
             # print(reply)
-            result_list.append(float(reply))
+            try:
+                result_list.append(float(reply))
+            except ValueError:
+                continue
 
     print('done')
 

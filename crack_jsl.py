@@ -27,7 +27,7 @@ class CrackSpider():
             conent = f.readlines()
             self.content = list(map(lambda x: x.strip(), conent))
 
-        self.url = 'https://www.jisilu.cn/account/ajax/login_process/'
+        self.url = 'https://www.jisilu.cn/webapi/account/login_process/'
         self.data = {
             'return_url': 'https://www.jisilu.cn/',
             'user_name': '',

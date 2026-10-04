@@ -8,6 +8,7 @@ import sys
 import time
 from selenium import webdriver
 from scrapy.selector import Selector
+from jsl.question_parser import QuestionPageMixin
 from jsl import config
 import pymongo
 
@@ -50,7 +51,9 @@ def predict(url,name):
             if price:
                 price_list.extend(price)
 
-            next_btn = driver.find_element_by_xpath('//div[@class="pagination pull-right"]//a[contains(text(),">")]')
+            next_btn = driver.find_element_by_xpath(
+                '//div[contains(concat(" ", normalize-space(@class), " "), " pagination ")]'
+                '//a[normalize-space(.)=">"]')
 
         except Exception as e:
             print(e)
@@ -80,11 +83,10 @@ def predict(url,name):
 
 def parse(text):
     response = Selector(text=text)
-    nodes = response.xpath('//div[@class="aw-mod-body aw-dynamic-topic"]/div[@class="aw-item"]')
+    nodes = response.css('.aw-dynamic-topic > .aw-item')
     result_list = []
     for node in nodes:
-        comment = node.xpath(
-            './/div[@class="pull-left aw-dynamic-topic-content"]//div[@class="markitup-box"]/text()').extract_first()
+        comment = QuestionPageMixin.content_text(node.css('.aw-dynamic-topic-content .markitup-box'))
         if comment:
             comment = comment.strip()
             try:
