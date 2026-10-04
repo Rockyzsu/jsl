@@ -36,42 +36,43 @@ class JslPipeline(object):
             item['update_time'] = update_time
 
 
-            if self.collection.find_one({'question_id': item['question_id']},{'_id':1}):
-                # 更新评论部分, 不更新就退出
-                only_add = False
+            existing = self.collection.find_one(
+                {'question_id': item['question_id']}, {'resp': 1, 'resp_no': 1})
+            if existing is not None:
+                if item.get('only_add', False):
+                    return item
+
+                replies = item.get('resp')
+                count = item.get('resp_no')
+                if not isinstance(replies, list) or not replies:
+                    logging.warning('帖子 %s 的回复为空，跳过更新', item['question_id'])
+                    return item
+                if not isinstance(count, int) or isinstance(count, bool) or count < 0:
+                    logging.warning('帖子 %s 的回复数为空或无效，跳过更新', item['question_id'])
+                    return item
+
+                stored_replies = existing.get('resp')
+                stored_length = len(stored_replies) if isinstance(stored_replies, list) else 0
+                stored_count = existing.get('resp_no')
+                if not isinstance(stored_count, int) or isinstance(stored_count, bool):
+                    stored_count = stored_length
+
+                # 同时检查实际抓取条数和页面声明总数，防止漏页结果覆盖完整数据。
+                if len(replies) < stored_length or count < stored_count:
+                    logging.warning(
+                        '帖子 %s 的回复数减少，跳过更新（实际 %s/%s，总数 %s/%s）',
+                        item['question_id'], len(replies), stored_length, count, stored_count)
+                    return item
 
                 try:
-                    only_add = item['only_add']
-
+                    self.collection.update_one(
+                        {'question_id': item['question_id']},
+                        {'$set': {'resp': replies,
+                                  'resp_no': count,
+                                  'last_resp_date': item.get('last_resp_date'),
+                                  'update_time': update_time}})
                 except Exception as e:
-                    pass
-
-                if not only_add:
-                    resp_no = self.collection.find_one({'question_id': item['question_id']},{'resp_no':1})
-                    resp_no_num = resp_no.get('resp_no')
-
-                    if resp_no_num<item['resp_no']:
-
-                        print('最新的评论数多于数据库，更新')
-                        try:
-                            self.collection.update_one({'question_id': item['question_id']},
-                                                       {'$set':
-                                                            {'resp': item['resp'],
-                                                             'resp_no':item['resp_no'],
-                                                             'last_resp_date': item['last_resp_date'],
-                                                             'update_time': update_time
-                                                             },
-
-                                                        }
-                                                       )
-                        except Exception as e:
-                            logging.error(e)
-                        else:
-                            print('更新完毕')
-
-                    else:
-                        print('已有评论数目一样，跳过')
-
+                    logging.error(e)
 
             else:
                 # 直接新增
